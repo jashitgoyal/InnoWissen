@@ -1,0 +1,5 @@
+fastapi
+uvicorn
+google-cloud-texttospeech
+google-cloud-speech
+python-dotenv

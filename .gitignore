@@ -1,0 +1,28 @@
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+
+# Env
+.env
+venv/
+*.env
+
+# VSCode
+.vscode/
+
+# OS
+.DS_Store
+
+# GCP credentials
+*.json
+
+# Audio & Reports
+*.mp3
+*.wav
+*.pdf
+temp.*
+output.*
+
+# Logs
+*.log
