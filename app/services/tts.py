@@ -5,7 +5,9 @@ from dotenv import load_dotenv
 load_dotenv()
 
 client = texttospeech.TextToSpeechClient()
-output_path = "output.mp3"
+
+# Save output.mp3 in the same directory as this tts.py file
+output_path = os.path.join(os.path.dirname(__file__), "output.mp3")
 
 def text_to_speech(text):
     synthesis_input = texttospeech.SynthesisInput(text=text)

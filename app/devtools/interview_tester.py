@@ -1,0 +1,67 @@
+import sounddevice as sd
+from scipy.io.wavfile import write
+import requests
+import time
+import argparse
+from pydub import AudioSegment
+from pydub.playback import play
+
+AUDIO_FILENAME = "temp.wav"
+RECORD_SECONDS = 5
+SAMPLE_RATE = 16000
+
+def record_audio():
+    print(f"\n🎤 Recording for {RECORD_SECONDS} seconds...")
+    audio = sd.rec(int(RECORD_SECONDS * SAMPLE_RATE), samplerate=SAMPLE_RATE, channels=1, dtype='int16')
+    sd.wait()
+    write(AUDIO_FILENAME, SAMPLE_RATE, audio)
+    print("✅ Recording saved.\n")
+
+def transcribe_audio():
+    files = {'file': open(AUDIO_FILENAME, 'rb')}
+    response = requests.post("http://localhost:8000/transcribe", files=files)
+    return response.json().get("transcript", "")
+
+def get_next_question(session_id):
+    response = requests.get("http://localhost:8000/interview/next", params={"session_id": session_id})
+    data = response.json()
+    if "question" in data:
+        print(f"🗨️  Q{data['question_number']}: {data['question']}")
+        return data["question"]
+    else:
+        print("✅ Interview complete.")
+        return None
+
+def play_tts(question):
+    response = requests.get("http://localhost:8000/ask-question", params={"text": question})
+    audio_path = response.json().get("audio_file", "output.mp3")
+    print("🔊 Playing bot question...\n")
+    sound = AudioSegment.from_file(audio_path)
+    play(sound)
+
+def submit_answer(session_id, answer):
+    response = requests.post("http://localhost:8000/interview/answer", json={
+        "session_id": session_id,
+        "question": question,
+        "answer": answer
+    })
+    if response.status_code == 200:
+        print("✅ Answer submitted.\n")
+    else:
+        print("❌ Failed to submit answer:", response.json())
+
+if __name__ == "__main__":
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--session_id", required=True, help="Session ID from /interview/start")
+    args = parser.parse_args()
+
+    while True:
+        question = get_next_question(args.session_id)
+        if not question:
+            break
+        play_tts(question)
+        record_audio()
+        answer = transcribe_audio()
+        print(f"🧑 Your Answer: {answer}\n")
+        submit_answer(args.session_id, answer)
+        input("⏭️  Press Enter for next question...\n")
