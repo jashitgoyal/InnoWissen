@@ -39,14 +39,16 @@ def play_tts(question):
     sound = AudioSegment.from_file(audio_path)
     play(sound)
 
-def submit_answer(session_id, answer):
+def submit_answer(session_id, question, answer):
     response = requests.post("http://localhost:8000/interview/answer", json={
         "session_id": session_id,
         "question": question,
         "answer": answer
     })
     if response.status_code == 200:
+        data = response.json()
         print("✅ Answer submitted.\n")
+        print(f"🧠 Evaluation: {data['evaluation']}\n")
     else:
         print("❌ Failed to submit answer:", response.json())
 
@@ -63,5 +65,15 @@ if __name__ == "__main__":
         record_audio()
         answer = transcribe_audio()
         print(f"🧑 Your Answer: {answer}\n")
-        submit_answer(args.session_id, answer)
+        submit_answer(args.session_id, question, answer)
         input("⏭️  Press Enter for next question...\n")
+
+    # After all questions are done
+    print("📄 Generating final report...")
+    end_response = requests.post("http://localhost:8000/interview/end", params={"session_id": args.session_id})
+    
+    if end_response.status_code == 200:
+        report_path = end_response.json().get("report_path")
+        print(f"✅ Interview complete. PDF report saved at: {report_path}\n")
+    else:
+        print("❌ Failed to generate final report:", end_response.json())

@@ -5,6 +5,7 @@ from fastapi import Request
 from app.services import question_gen
 
 from pydantic import BaseModel
+from app.services.evaluator import evaluate_answer
 import uuid
 
 router = APIRouter()
@@ -82,13 +83,45 @@ async def submit_answer(payload: AnswerSubmission):
     if not session:
         return {"error": "Invalid session ID"}
 
+    role = payload.session_id.split("-")[0]
+
+    evaluation_result = evaluate_answer(payload.question, payload.answer, role)
+
     session["answers"].append({
         "question": payload.question,
-        "answer": payload.answer
+        "answer": payload.answer,
+        "evaluation": evaluation_result["evaluation"],
+        "score":evaluation_result["score"]
     })
 
     return {
         "message": "Answer submitted successfully",
         "question": payload.question,
-        "transcript": payload.answer
+        "transcript": payload.answer,
+        "evaluation": evaluation_result["evaluation"],
+        "score":evaluation_result["score"]
     }
+
+
+from app.services.report_generator import generate_interview_report
+from fastapi import HTTPException
+
+@router.post("/interview/end")
+def end_interview(session_id: str):
+    session = session_store.get(session_id)
+    if not session:
+        raise HTTPException(status_code=404, detail="Session not found")
+
+    interview_type = session_id.split("-")[0]
+    report_path = generate_interview_report(
+        session_id=session_id,
+        interview_type=interview_type,
+        evaluations=session["answers"]
+    )
+
+    return {
+        "message": "Interview completed.",
+        "report_path": report_path
+    }
+
+
