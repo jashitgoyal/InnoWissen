@@ -5,16 +5,15 @@ import time
 import argparse
 from pydub import AudioSegment
 from pydub.playback import play
+from app.services.record_utils import record_until_silence
 
 AUDIO_FILENAME = "temp.wav"
 RECORD_SECONDS = 5
 SAMPLE_RATE = 16000
 
 def record_audio():
-    print(f"\n🎤 Recording for {RECORD_SECONDS} seconds...")
-    audio = sd.rec(int(RECORD_SECONDS * SAMPLE_RATE), samplerate=SAMPLE_RATE, channels=1, dtype='int16')
-    sd.wait()
-    write(AUDIO_FILENAME, SAMPLE_RATE, audio)
+    print("\n🎤 Recording (auto-stop on silence)...")
+    record_until_silence(AUDIO_FILENAME)
     print("✅ Recording saved.\n")
 
 def transcribe_audio():

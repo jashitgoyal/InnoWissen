@@ -1,3 +1,9 @@
+import os
+from dotenv import load_dotenv
+from app.services.gemini_wrapper import model  # Gemini model instance from your wrapper
+
+load_dotenv()
+
 def evaluate_answer(question: str, answer: str, role: str) -> dict:
     prompt = f"""
 You are an experienced interviewer conducting a {role.upper()} interview.

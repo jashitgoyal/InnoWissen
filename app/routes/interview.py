@@ -3,9 +3,12 @@ from app.services import tts
 from app.services import stt
 from fastapi import Request
 from app.services import question_gen
-
+from app.services.logger import log_answer
 from pydantic import BaseModel
 from app.services.evaluator import evaluate_answer
+from fastapi.responses import FileResponse
+from app.services.pdf_generator import generate_pdf_report
+
 import uuid
 
 router = APIRouter()
@@ -86,6 +89,13 @@ async def submit_answer(payload: AnswerSubmission):
     role = payload.session_id.split("-")[0]
 
     evaluation_result = evaluate_answer(payload.question, payload.answer, role)
+    log_answer(
+    session_id=payload.session_id,
+    question=payload.question,
+    answer=payload.answer,
+    evaluation=evaluation_result["evaluation"],
+    score=evaluation_result["score"]
+)
 
     session["answers"].append({
         "question": payload.question,
@@ -125,3 +135,11 @@ def end_interview(session_id: str):
     }
 
 
+
+@router.get("/interview/report")
+def download_report(session_id: str):
+    try:
+        pdf_path = generate_pdf_report(session_id)
+        return FileResponse(pdf_path, media_type="application/pdf", filename=f"{session_id}.pdf")
+    except Exception as e:
+        return {"error": str(e)}
